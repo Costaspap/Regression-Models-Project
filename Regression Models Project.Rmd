@@ -1,0 +1,104 @@
+---
+title: "Regression Models Project"
+author: "Konstantinos Papastamos"
+date: "25 Octomber 2015"
+output: pdf_document
+---
+
+##Executive Summary
+
+You work for Motor Trend, a magazine about the automobile industry. Looking at a data set of a collection of cars, they are interested in exploring the relationship between a set of variables and miles per gallon (MPG) (outcome). They are particularly interested in the following two questions:
+
+* “Is an automatic or manual transmission better for MPG”
+* "Quantify the MPG difference between automatic and manual transmissions"
+
+##Exploratory Data Analysis
+So we have a dataframe of 32 observations and 11 variables.
+Let's do some necessary transformations and have a look at our data.
+
+```{r}
+data(mtcars)
+data = mtcars
+data$am[data$am==0] <- "Automatic"
+data$am[data$am==1] <- "Manual"
+data$am <- as.factor(data$am)
+str(data)
+```
+
+##Modelling and Testing
+
+Let's do a t test in 95% confidence level to check if transmission type
+has an influence on Miles per Gallon.
+```{r}
+t.test(data$mpg ~ data$am)
+```
+Here we can see that the p-value is lower than 0.05 so a first assumption is that transmission type actually affects mpg.
+
+So let's create our first regression model with am as the predictor and mpg as the outcome.
+
+```{r}
+rmodel1 = lm(mpg ~ am,data)
+summary(rmodel1)
+```
+
+The results suggest that manual cars have an average of 7.245 higher mpg than automatic ones.However, this model only explains 36% of the total variance. So let’s create an improved model based on more variables.
+
+First we create a correlation heatmap to see which variables are highly correlated and thus not include them in the improved model. See the appendix for the heatmap.
+
+After we consult the heatmap we use the step(lm(mpg ~ .,data)) function in order to find the most important variables to include. Finally we construct our improved model.
+```{r}
+rmodel2 = lm(mpg ~ am + wt + qsec,data)
+summary(rmodel2)
+```
+This model incorporates the weight and qsec variables and explains 85% of the variance.
+
+Let's compare the two models:
+```{r}
+anova(rmodel1,rmodel2)
+```
+From the anova table we can see that the Pr value for the second model is lower than 0.05 and so the addition of the qsec variable was necessary to improve the model. Thus it makes sense that we use the second one.
+
+##Conclusion
+In order to have a complete conclusion, we needed to incorporate the qsec variable in our model. No more variables were used in order to avoid overfitting.
+
+The final conlcusion is that manual transmission cars have on average 2.9358 more mpg than cars with automatic transmission.
+
+##Diagnostics
+
+See appendix for the plots
+
+Our model seems to work since:
+
+* There is no discernible pattern in the Residuals vs Fitted plot (it's more clear if we plot it without the other 3 plots)
+* Residuals follow a Normal distribution
+* There aren't any important outliers
+
+##Appendix
+```{r,warning=FALSE}
+library(ggplot2)
+library(reshape2)
+corheatmap = round(cor(mtcars),2)
+corheatmap[lower.tri(corheatmap)]<- NA
+melted <- melt(corheatmap)
+melted <- na.omit(melted)
+
+
+
+ggplot(data = melted, aes(Var2, Var1, fill = value))+
+ggtitle("Correlation Heatmap")+
+geom_tile(color = "white")+
+scale_fill_gradient2(low = "blue", 
+high = "red", mid = "white",
+midpoint = 0, limit = c(-1,1), name="Correlation")+
+theme_minimal()+coord_fixed()
+```
+```{r,echo=FALSE}
+par(mfrow=c(2,2))
+plot(rmodel2)
+```
+
+
+
+
+
+
